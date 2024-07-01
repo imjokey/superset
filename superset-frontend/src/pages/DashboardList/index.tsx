@@ -24,7 +24,7 @@ import {
   t,
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
-import React, { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import rison from 'rison';
 import {
@@ -69,6 +69,8 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 
+import AiModal from './components/AiModal/AiModal';
+
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
   'The passwords for the databases below are needed in order to ' +
@@ -111,6 +113,27 @@ const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
+const DASHBOARD_COLUMNS_TO_FETCH = [
+  'id',
+  'dashboard_title',
+  'published',
+  'url',
+  'slug',
+  'changed_by',
+  'changed_on_delta_humanized',
+  'owners.id',
+  'owners.first_name',
+  'owners.last_name',
+  'owners',
+  'tags.id',
+  'tags.name',
+  'tags.type',
+  'status',
+  'certified_by',
+  'certification_details',
+  'changed_on',
+];
+
 function DashboardList(props: DashboardListProps) {
   const { addDangerToast, addSuccessToast, user } = props;
 
@@ -135,6 +158,11 @@ function DashboardList(props: DashboardListProps) {
     'dashboard',
     t('dashboard'),
     addDangerToast,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    DASHBOARD_COLUMNS_TO_FETCH,
   );
   const dashboardIds = useMemo(() => dashboards.map(d => d.id), [dashboards]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
@@ -357,6 +385,9 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Owners'),
         accessor: 'owners',
         disableSortBy: true,
+        cellProps: {
+          style: { padding: '0px' },
+        },
         size: 'xl',
       },
       {
@@ -639,6 +670,14 @@ function DashboardList(props: DashboardListProps) {
   const subMenuButtons: SubMenuProps['buttons'] = [];
   if (canDelete || canExport) {
     subMenuButtons.push({
+      name: 'AI分析',
+      buttonStyle: 'tertiary',
+      'data-test': 'bulk-select',
+      onClick: () => {
+        setCssTemplateModalOpen(true);
+      },
+    });
+    subMenuButtons.push({
       name: t('Bulk select'),
       buttonStyle: 'secondary',
       'data-test': 'bulk-select',
@@ -672,9 +711,20 @@ function DashboardList(props: DashboardListProps) {
       onClick: openDashboardImportModal,
     });
   }
+
+  const [cssTemplateModalOpen, setCssTemplateModalOpen] =
+    useState<boolean>(false);
+
   return (
     <>
       <SubMenu name={t('Dashboards')} buttons={subMenuButtons} />
+      <AiModal
+        // addDangerToast={addDangerToast}
+        // cssTemplate={currentCssTemplate}
+        // onCssTemplateAdd={() => refreshData()}
+        onHide={() => setCssTemplateModalOpen(false)}
+        show={cssTemplateModalOpen}
+      />
       <ConfirmStatusChange
         title={t('Please confirm')}
         description={t(
